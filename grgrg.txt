@@ -1,0 +1,164 @@
+<html>
+<body>
+
+<h1 style="background-color: red;">Hello World!</h1>
+<p>This is a paragraph.</p>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA 3D with School Background - Ahmed Meglali</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0d0d12;
+            /* Using the school logo as the background */
+            background-image: url('https://yt3.googleusercontent.com/ytc/AIdro_lwzQ2ZmljbGvCxy-zI2mLhiIFKq79JMjPwby5UU2rAgvE=s900-c-k-c0x00ffffff-no-rj');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1; /* DNA on top */
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h1>ADN 3D Interactif</h1>
+        <p>Modèle personnalisé pour Ahmed Meglali avec fond scolaire</p>
+    </div>
+
+    <div class="legend">
+        <b>Configuration des liaisons :</b><br>
+        <span style="color: #ff4757">A</span> = <span style="color: #2ed573">T</span> (2 liaisons)<br>
+        <span style="color: #1e90ff">C</span> = <span style="color: #ffa502">G</span> (3 liaisons)
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        // alpha: true is key to seeing the background image
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        const light = new THREE.PointLight(0xffffff, 1.5);
+        light.position.set(10, 10, 10);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+        const dnaGroup = new THREE.Group();
+        scene.add(dnaGroup);
+
+        const mats = {
+            A: new THREE.MeshPhongMaterial({ color: 0xff4757 }),
+            T: new THREE.MeshPhongMaterial({ color: 0x2ed573 }),
+            C: new THREE.MeshPhongMaterial({ color: 0x1e90ff }),
+            G: new THREE.MeshPhongMaterial({ color: 0xffa502 }),
+            bond: new THREE.MeshPhongMaterial({ color: 0xeeeeee, transparent: true, opacity: 0.5 }),
+            backbone: new THREE.MeshPhongMaterial({ color: 0x555577 })
+        };
+
+        const nodeGeo = new THREE.SphereGeometry(0.3, 16, 16);
+        const baseGeo = new THREE.CylinderGeometry(0.1, 0.1, 2, 12);
+        baseGeo.rotateZ(Math.PI / 2);
+        const bondGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.8, 8);
+        bondGeo.rotateZ(Math.PI / 2);
+
+        const pairs = [
+            { l: 'A', r: 'T', bonds: 2 },
+            { l: 'C', r: 'G', bonds: 3 },
+            { l: 'T', r: 'A', bonds: 2 },
+            { l: 'G', r: 'C', bonds: 3 }
+        ];
+
+        for (let i = 0; i < 40; i++) {
+            const y = i * 0.8 - 15;
+            const theta = i * 0.4;
+            const pair = pairs[i % 4];
+
+            // Backbone
+            [theta, theta + Math.PI].forEach(angle => {
+                const node = new THREE.Mesh(nodeGeo, mats.backbone);
+                node.position.set(Math.cos(angle) * 3, y, Math.sin(angle) * 3);
+                dnaGroup.add(node);
+            });
+
+            // Rungs
+            const rung = new THREE.Group();
+            rung.position.y = y;
+            rung.rotation.y = -theta;
+
+            const b1 = new THREE.Mesh(baseGeo, mats[pair.l]);
+            b1.position.x = -1.5;
+            const b2 = new THREE.Mesh(baseGeo, mats[pair.r]);
+            b2.position.x = 1.5;
+            rung.add(b1, b2);
+
+            for (let j = 0; j < pair.bonds; j++) {
+                const b = new THREE.Mesh(bondGeo, mats.bond);
+                b.position.z = (j - (pair.bonds - 1) / 2) * 0.2;
+                rung.add(b);
+            }
+            dnaGroup.add(rung);
+        }
+
+        camera.position.z = 20;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            dnaGroup.rotation.y += 0.005;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
